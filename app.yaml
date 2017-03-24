@@ -1,6 +1,10 @@
 runtime: python27
 api_version: 1
 threadsafe: true 
+application: alpeware-website
+
+env_variables:
+  GOOGLE_APPLICATION_CREDENTIALS: './service_account_credentials.json'
 
 handlers:
 - url: /static
