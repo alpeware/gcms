@@ -51,10 +51,18 @@ ANALYTICS_SCRIPT = """
 
 POST_TMPL_RE = re.compile('<p[^>]*><span[^>]*>//--\+ Post</span></p>(.*)<p[^>]*><span[^>]*>Post \+--//</span></p>')
 
+def make_resp(match):
+    s = match.group(0)
+    s = string.replace(s, 'display: inline-block;', '')
+    s = string.replace(s, 'width:', 'max-width:')
+    s = string.replace(s, 'height:', 'max-height:')
+    return s
+
 def parse_landing_page(html, posts):
     title_tag = '<title>' + 'Alpeware' + '</title>'
     fixed_head = re.sub(HEAD_RE, title_tag + VIEWPORT + CUSTOM_CSS + HEAD_RE, html)
     html = re.sub(BODY_RE, r'<body style="background-color:#f3f3f3;"><div \1max-width:80%;margin-left:auto;margin-right:auto;margin-top:10px;padding:20px;">', fixed_head)
+    html = re.sub(IMAGES_RE, make_resp, html)
     html = re.sub('</body>', ANALYTICS_SCRIPT + '</body>', html)
     logging.info('processing landing page')
     post_tmpl = ''
@@ -97,12 +105,6 @@ def fix_page(html, slug):
         title = title_match.group(3)
     title_tag = '<title>' + title + '</title>'
 
-    def make_resp(match):
-        s = match.group(0)
-        s = string.replace(s, 'display: inline-block;', '')
-        s = string.replace(s, 'width:', 'max-width:')
-        s = string.replace(s, 'height:', 'max-height:')
-        return s
     resp_imgs = re.sub(IMAGES_RE, make_resp, no_tags)
 
     def style_comms(match):
