@@ -1,7 +1,7 @@
 import logging
 import webapp2
 
-from common import fix_page, enqueue_post, start_caching
+from common import fix_page, enqueue_post, start_caching, parse_landing_page
 
 from apiclient import discovery
 from google.appengine.api import memcache
@@ -10,7 +10,6 @@ from oauth2client.client import GoogleCredentials
 
 def get_credentials():
     credentials = GoogleCredentials.get_application_default()
-    print vars(credentials)
     return credentials
 
 def get_service():
@@ -34,7 +33,6 @@ def get_file_content(service=None, file_id=None):
     return content 
 
 def sort_posts(e):
-    logging.info(e)
     return int(e['name'].split('-')[0])
 
 class UpdateIndexHandler(webapp2.RequestHandler):
@@ -47,13 +45,15 @@ class UpdateIndexHandler(webapp2.RequestHandler):
         files = get_files(self.service)
         posts = []
         for f in files:
-            logging.info(f)
+            # logging.info(f)
             posts.append(f)
             file_id = f['id']
             # add slug mapping
-            memcache.add(f['name'], file_id)
+            memcache.set(f['name'], file_id)
+            memcache.set('slug_' + file_id, f['name'])
             enqueue_post(file_id)
-        posts.sort(key=sort_posts) 
+        posts.sort(key=sort_posts)
+        posts = list(reversed(posts))
         memcache.set('posts', posts)
 
 class UpdatePostHandler(webapp2.RequestHandler):
@@ -61,9 +61,13 @@ class UpdatePostHandler(webapp2.RequestHandler):
         self.initialize(request, response)
         self.service = get_service()
 
-    def post(self):
-        file_id = self.request.get('file_id')
-        (title, tags, page) = fix_page(get_file_content(self.service, file_id))
+    def landing_page(self, file_id, content):
+        posts = memcache.get('posts')
+        page = parse_landing_page(content, posts)
+        memcache.set(file_id, page)
+
+    def blog_post(self, file_id, content, slug):
+        (title, tags, page) = fix_page(content, slug)
         # There's ~30sec delay for new docs :(
 	if len(page) > 0:
 	    memcache.set(file_id, page) 
@@ -71,6 +75,18 @@ class UpdatePostHandler(webapp2.RequestHandler):
 	    memcache.set('tags_' + file_id, tags) 
         else:
             enqueue_post(file_id)
+
+    def post(self):
+        file_id = self.request.get('file_id')
+        slug = memcache.get('slug_' + file_id)
+        logging.info('found slug: %s', slug)
+        content = get_file_content(self.service, file_id)
+        if '0-landing-page' in slug:
+            logging.info('found landing page')
+            self.landing_page(file_id, content)
+        else:
+            self.blog_post(file_id, content, slug)
+
 
 class RefreshPostsHandler(webapp2.RequestHandler):
     def get(self):

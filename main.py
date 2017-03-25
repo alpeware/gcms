@@ -10,27 +10,17 @@ from oauth2client.client import GoogleCredentials
 class MainHandler(webapp2.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'text/html'
-        posts = memcache.get('posts')
-        if posts is None:
-            start_caching()
-            self.response.write('No posts found. Please try again.')
+        file_id = memcache.get('0-landing-page')
+        if file_id is None:
+            self.response.write('Landing page not found.')
             return
-        self.response.write('<html><body><h1>Posts</h1>')
-        for post in posts:
-            slug = post['name']
-            file_id = post['id']
-            created = post['createdTime']
-            modified = post['modifiedTime']
-            title = memcache.get('title_' + file_id)
-            tags = memcache.get('tags_' + file_id)
-            self.response.write("""
-            <p><a href='/%s'>%s</a></p>
-            <p><small>Created: %s</small></p>
-            <p><small>Modified: %s</small></p>
-            <p><small>Tags: %s</small></p>
-            <hr>
-            """ % (slug, title, created, modified, ', '.join(tags)))
-        self.response.write('</body></html>')
+        page = memcache.get(file_id)
+        if page is None:
+            enqueue_post(file_id)
+            self.response.write('Cache miss. Please try again.')
+            return
+        self.response.write(page)
+
 
 class PostHandler(webapp2.RequestHandler):
     def get(self, slug):
@@ -53,6 +43,7 @@ class PostHandler(webapp2.RequestHandler):
 class CacheHandler(webapp2.RequestHandler):
     def get(self):
         start_caching()
+
 
 app = webapp2.WSGIApplication([
     (r'/', MainHandler),
