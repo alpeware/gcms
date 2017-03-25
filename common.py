@@ -18,8 +18,8 @@ DISQUS_SCRIPT = """
 <div id="disqus_thread"></div>
 <script>
 var disqus_config = function () {
-  this.page.url = '%s';
-  this.page.identifier = '%s';
+  this.page.url = 'https://www.alpeware.com/%s';
+  this.page.identifier = '/%s';
 };
 (function() { // DON'T EDIT BELOW THIS LINE
 var d = document, s = d.createElement('script');
