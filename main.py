@@ -1,3 +1,8 @@
+"""
+GCMS
+
+(c) 2017 Alpeware LLC
+"""
 import re
 import string
 import logging
@@ -40,13 +45,8 @@ class PostHandler(webapp2.RequestHandler):
 
         self.response.write(page)
 
-class CacheHandler(webapp2.RequestHandler):
-    def get(self):
-        start_caching()
-
 
 app = webapp2.WSGIApplication([
     (r'/', MainHandler),
-    (r'/(.*)', PostHandler),
-    ('/cache', CacheHandler)
+    (r'/(.*)', PostHandler)
 ], debug=True)

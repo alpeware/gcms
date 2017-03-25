@@ -1,3 +1,8 @@
+"""
+GCMS
+
+(c) 2017 Alpeware LLC
+"""
 import logging
 import re
 import string
@@ -31,12 +36,26 @@ s.setAttribute('data-timestamp', +new Date());
 <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
 """
 
+ANALYTICS_SCRIPT = """
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-91886762-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+"""
+
 POST_TMPL_RE = re.compile('<p[^>]*><span[^>]*>//--\+ Post</span></p>(.*)<p[^>]*><span[^>]*>Post \+--//</span></p>')
 
 def parse_landing_page(html, posts):
     title_tag = '<title>' + 'Alpeware' + '</title>'
     fixed_head = re.sub(HEAD_RE, title_tag + VIEWPORT + CUSTOM_CSS + HEAD_RE, html)
     html = re.sub(BODY_RE, r'<body style="background-color:#f3f3f3;"><div \1max-width:80%;margin-left:auto;margin-right:auto;margin-top:10px;padding:20px;">', fixed_head)
+    html = re.sub('</body>', ANALYTICS_SCRIPT + '</body>', html)
     logging.info('processing landing page')
     post_tmpl = ''
     post_section = ''
@@ -50,6 +69,7 @@ def parse_landing_page(html, posts):
                 p = post_tmpl
                 file_id = post['id']
                 title = memcache.get('title_' + file_id)
+                # logging.info(title)
                 post['title'] = title
                 # logging.info(post)
                 for k in post.keys():
@@ -91,7 +111,7 @@ def fix_page(html, slug):
         return s
     styled_comms = re.sub(COMMENTS_RE, style_comms, resp_imgs)
 
-    add_comments = re.sub('</body>', (DISQUS_SCRIPT % (slug, slug)) + '</body>', styled_comms)
+    add_comments = re.sub('</body>', ANALYTICS_SCRIPT + (DISQUS_SCRIPT % (slug, slug)) + '</body>', styled_comms)
 
     fixed_head = re.sub(HEAD_RE, title_tag + VIEWPORT + CUSTOM_CSS + HEAD_RE, add_comments)
 
@@ -115,4 +135,3 @@ def start_caching():
         target='worker')
     rpc = queue.add_async(task)
     task = rpc.get_result()
-    # logging.info('started index queue')
