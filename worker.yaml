@@ -1,9 +1,14 @@
 runtime: python27
 api_version: 1
 threadsafe: true
+
 service: worker
+instance_class: B1
+version: uno
+basic_scaling:
+  max_instances: 1
 
 handlers:
-- url: /.*
+- url: /worker/.*
   script: worker.app
   login: admin

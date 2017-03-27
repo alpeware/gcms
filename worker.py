@@ -100,7 +100,7 @@ class RefreshPostsHandler(webapp2.RequestHandler):
 
 
 app = webapp2.WSGIApplication([
-    ('/index', UpdateIndexHandler),
-    ('/post', UpdatePostHandler),
-    ('/refresh', RefreshPostsHandler)
+    ('/worker/index', UpdateIndexHandler),
+    ('/worker/post', UpdatePostHandler),
+    ('/worker/refresh', RefreshPostsHandler)
 ], debug=True)

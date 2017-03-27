@@ -15,7 +15,7 @@ from google.appengine.api import taskqueue
 from google.appengine.api import memcache
 from google.appengine.ext.webapp.mail_handlers import InboundMailHandler
 
-NAME_RE = r'([^<]+)'
+NAME_RE = r'([^<]+)<'
 EMAIL_RE = r'[^<]+<([^>]+)'
 
 def send_message(sender, recipient, subject, text):

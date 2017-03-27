@@ -1,6 +1,6 @@
 runtime: python27
 api_version: 1
-threadsafe: true 
+threadsafe: true
 
 env_variables:
   GOOGLE_APPLICATION_CREDENTIALS: './service_account_credentials.json'
@@ -9,10 +9,10 @@ inbound_services:
 - mail
 
 handlers:
+- url: /static
+  static_dir: static
 - url: /_ah/mail/.+
   script: incoming.app
   login: admin
-- url: /static
-  static_dir: static
 - url: /.*
   script: main.app

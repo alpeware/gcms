@@ -124,7 +124,7 @@ def fix_page(html, slug):
 def enqueue_post(file_id):
     queue = taskqueue.Queue(name='post-queue')
     task = taskqueue.Task(
-        url='/post',
+        url='/worker/post',
         target='worker',
         params={'file_id': file_id})
     rpc = queue.add_async(task)
@@ -133,7 +133,7 @@ def enqueue_post(file_id):
 def start_caching():
     queue = taskqueue.Queue(name='index-queue')
     task = taskqueue.Task(
-        url='/index',
+        url='/worker/index',
         target='worker')
     rpc = queue.add_async(task)
     task = rpc.get_result()

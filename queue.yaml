@@ -1,6 +1,6 @@
 queue:
 - name: index-queue
-  rate: 5/s
+  rate: 1/s
 
 - name: post-queue
-  rate: 5/s
+  rate: 1/s
