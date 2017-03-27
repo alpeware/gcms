@@ -2,4 +2,4 @@ cron:
 - description: refresh posts 
   url: /worker/refresh
   target: worker
-  schedule: every 5 minutes 
+  schedule: every 1 hour
