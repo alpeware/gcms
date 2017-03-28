@@ -18,6 +18,7 @@ class MainHandler(webapp2.RequestHandler):
         file_id = memcache.get('0-landing-page')
         if file_id is None:
             self.response.write('Landing page not found.')
+            start_caching()
             return
         page = memcache.get(file_id)
         if page is None:

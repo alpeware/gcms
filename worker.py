@@ -95,8 +95,8 @@ class UpdatePostHandler(webapp2.RequestHandler):
 
 class RefreshPostsHandler(webapp2.RequestHandler):
     def get(self):
-	logging.info('refreshing cache')
-	start_caching()
+        logging.info('refreshing cache')
+        start_caching()
 
 
 app = webapp2.WSGIApplication([
