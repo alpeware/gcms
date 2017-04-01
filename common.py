@@ -49,6 +49,19 @@ ANALYTICS_SCRIPT = """
 </script>
 """
 
+ADSENSE_SCRIPT = """
+<script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- Alpeware -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-6123540793627831"
+     data-ad-slot="8549779304"
+     data-ad-format="auto"></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+"""
+
 POST_TMPL_RE = re.compile('<p[^>]*><span[^>]*>//--\+ Post</span></p>(.*)<p[^>]*><span[^>]*>Post \+--//</span></p>')
 
 def make_resp(match):
@@ -113,7 +126,7 @@ def fix_page(html, slug):
         return s
     styled_comms = re.sub(COMMENTS_RE, style_comms, resp_imgs)
 
-    add_comments = re.sub('</body>', ANALYTICS_SCRIPT + (DISQUS_SCRIPT % (slug, slug)) + '</body>', styled_comms)
+    add_comments = re.sub('</body>', ADSENSE_SCRIPT + ANALYTICS_SCRIPT + (DISQUS_SCRIPT % (slug, slug)) + '</body>', styled_comms)
 
     fixed_head = re.sub(HEAD_RE, title_tag + VIEWPORT + CUSTOM_CSS + HEAD_RE, add_comments)
 
