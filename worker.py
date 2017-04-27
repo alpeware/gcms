@@ -5,13 +5,18 @@ GCMS
 """
 import logging
 import webapp2
+from datetime import datetime
 
 from common import fix_page, enqueue_post, start_caching, parse_landing_page
+from models import Page
 
 from apiclient import discovery
 from google.appengine.api import memcache
 from google.appengine.api import taskqueue
+from google.appengine.ext import ndb
 from oauth2client.client import GoogleCredentials
+
+ISO_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
 def get_credentials():
     credentials = GoogleCredentials.get_application_default()
@@ -40,6 +45,24 @@ def get_file_content(service=None, file_id=None):
 def sort_posts(e):
     return int(e['name'].split('-')[0])
 
+def upsert_page(page):
+    key = Page.query_by_file_id(page.file_id).get(keys_only=True)
+    # remove empty items
+    page_dict = dict((k,v) for k,v in page.to_dict().iteritems() if v is not None)
+    logging.debug('key %s', key)
+    logging.debug('page %s', page_dict)
+
+    @ndb.transactional
+    def update(page, key, page_dict):
+        entity = page
+        if key:
+            entity = key.get()
+        entity.populate(**page_dict)
+        entity.put()
+
+    update(page, key, page_dict)
+
+
 class UpdateIndexHandler(webapp2.RequestHandler):
     def __init__(self, request, response):
         self.initialize(request, response)
@@ -48,54 +71,51 @@ class UpdateIndexHandler(webapp2.RequestHandler):
     def post(self):
         logging.debug('fetching files')
         files = get_files(self.service)
-        posts = []
         for f in files:
             # logging.info(f)
-            posts.append(f)
             file_id = f['id']
-            # add slug mapping
-            memcache.set(f['name'], file_id)
-            memcache.set('slug_' + file_id, f['name'])
+            slug = f['name']
+            created_at = datetime.strptime(f['createdTime'], ISO_FORMAT)
+            logging.debug('created at %s %s', created_at, f['createdTime'])
+            upsert_page(Page(file_id=file_id, slug=slug, created_at=created_at))
             enqueue_post(file_id)
-        posts.sort(key=sort_posts)
-        posts = list(reversed(posts))
-        memcache.set('posts', posts)
 
 class UpdatePostHandler(webapp2.RequestHandler):
     def __init__(self, request, response):
         self.initialize(request, response)
         self.service = get_service()
 
-    def landing_page(self, file_id, content):
-        posts = memcache.get('posts')
-        page = parse_landing_page(content, posts)
-        memcache.set(file_id, page)
+    def landing_page(self, file_id, content, slug):
+        pages = Page.query().order(-Page.created_at).fetch()
+        (title, tags, html) = parse_landing_page(content, pages)
+        upsert_page(Page(file_id=file_id, slug=slug, title=title, tags=tags, content=html))
 
     def blog_post(self, file_id, content, slug):
-        (title, tags, page) = fix_page(content, slug)
+        (title, tags, html) = fix_page(content, slug)
         # There's ~30sec delay for new docs :(
-	if len(page) > 0:
-	    memcache.set(file_id, page) 
-	    memcache.set('title_' + file_id, title) 
-	    memcache.set('tags_' + file_id, tags) 
+	if len(html) > 0:
+            upsert_page(Page(file_id=file_id, slug=slug, title=title, tags=tags, content=html))
         else:
             enqueue_post(file_id)
 
     def post(self):
         file_id = self.request.get('file_id')
-        slug = memcache.get('slug_' + file_id)
-        logging.info('found slug: %s', slug)
+        page = Page.query_by_file_id(file_id).get()
+        slug = page.slug
         content = get_file_content(self.service, file_id)
         if '0-landing-page' in slug:
-            logging.info('found landing page')
-            self.landing_page(file_id, content)
-        else:
+            logging.debug('found landing page')
+            self.landing_page(file_id, content, slug)
+        elif not slug.startswith('0-'):
             self.blog_post(file_id, content, slug)
+        else:
+            # should match 0-tags-page
+            upsert_page(Page(file_id=file_id, slug=slug, content=content))
 
 
 class RefreshPostsHandler(webapp2.RequestHandler):
     def get(self):
-        logging.info('refreshing cache')
+        logging.debug('refreshing cache')
         start_caching()
 
 

@@ -9,7 +9,7 @@ import string
 from google.appengine.api import taskqueue
 from google.appengine.api import memcache
 
-TAGS_RE = re.compile('(<p[^>]+>)<span([^>]+)>[Tt]ags:([^<]+)</span></p>')
+TAGS_RE = re.compile('(<p[^>]+>)<span([^>]*)>[Tt]ags:([^<]+)</span></p>')
 TITLE_RE = re.compile('<p class="title"([^>]+)><span([^>]+)>([^<]+)')
 COMMENTS_RE = re.compile('(<div\sstyle="border:1px[^"]+">)')
 IMAGES_RE = re.compile('(<span[^>]+><img[^>]+></span>)')
@@ -71,35 +71,33 @@ def make_resp(match):
     s = string.replace(s, 'height:', 'max-height:')
     return s
 
-def parse_landing_page(html, posts):
-    title_tag = '<title>' + 'Alpeware' + '</title>'
+# TODO: consolidate and DRY both parsing methods
+def parse_landing_page(html, pages):
+    title = 'Alpeware'
+    tags = ['landing page']
+    title_tag = '<title>' + title + '</title>'
     fixed_head = re.sub(HEAD_RE, title_tag + VIEWPORT + CUSTOM_CSS + HEAD_RE, html)
     html = re.sub(BODY_RE, r'<body style="background-color:#f3f3f3;"><div \1max-width:80%;margin-left:auto;margin-right:auto;margin-top:10px;padding:20px;">', fixed_head)
     html = re.sub(IMAGES_RE, make_resp, html)
     html = re.sub('</body>', ANALYTICS_SCRIPT + '</body>', html)
-    logging.info('processing landing page')
+    logging.debug('processing landing page')
     post_tmpl = ''
     post_section = ''
     tmpl_match = re.search(POST_TMPL_RE, html)
     if tmpl_match:
         post_tmpl = tmpl_match.group(1)
-        post_tmpl = string.replace(post_tmpl, '{post.name}', "<a href='{post.name}'>{post.title}</a>")
-        for post in posts:
-            logging.info(post['name'])
-            if '0-landing-page' not in post['name']:
+        post_tmpl = string.replace(post_tmpl, '{post.slug}', "<a href='{post.slug}'>{post.title}</a>")
+        for page in pages:
+            page_dict = page.to_dict()
+            if not page_dict['slug'].startswith('0-'):
                 p = post_tmpl
-                file_id = post['id']
-                title = memcache.get('title_' + file_id)
-                # logging.info(title)
-                post['title'] = title
-                # logging.info(post)
-                for k in post.keys():
-                    if isinstance(post[k], basestring):
-                        p = string.replace(p, ("{post.%s}" % k), post[k])
+                for k in page._properties:
+                    if isinstance(page_dict[k], basestring):
+                        p = string.replace(p, ("{post.%s}" % k), page_dict[k])
                 post_section += p
         with_section = re.sub(POST_TMPL_RE, post_section, html)
-        return with_section
-    return html
+        return (title, tags, with_section)
+    return (title, tags, html)
 
 
 def fix_page(html, slug):
