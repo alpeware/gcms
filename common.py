@@ -62,6 +62,16 @@ ADSENSE_SCRIPT = """
 </script>
 """
 
+ADSENSE_PAGE_ADS_SCRIPT = """
+<script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<script>
+  (adsbygoogle = window.adsbygoogle || []).push({
+    google_ad_client: "ca-pub-6123540793627831",
+    enable_page_level_ads: true
+  });
+</script>
+"""
+
 POST_TMPL_RE = re.compile('<p[^>]*><span[^>]*>//--\+ Post</span></p>(.*)<p[^>]*><span[^>]*>Post \+--//</span></p>')
 
 def make_resp(match):
@@ -126,7 +136,7 @@ def fix_page(html, slug):
 
     add_comments = re.sub('</body>', ADSENSE_SCRIPT + ANALYTICS_SCRIPT + (DISQUS_SCRIPT % (slug, slug)) + '</body>', styled_comms)
 
-    fixed_head = re.sub(HEAD_RE, title_tag + VIEWPORT + CUSTOM_CSS + HEAD_RE, add_comments)
+    fixed_head = re.sub(HEAD_RE, title_tag + VIEWPORT + CUSTOM_CSS + ADSENSE_PAGE_ADS_SCRIPT + HEAD_RE, add_comments)
 
     fixed_body = re.sub(BODY_RE, r'<body style="background-color:#f3f3f3;"><div \1max-width:80%;margin-left:auto;margin-right:auto;margin-top:10px;padding:20px;">', fixed_head)
 
